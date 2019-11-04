@@ -1,0 +1,64 @@
+// {"name": "Spring Boot", "step": "3", description": "Spring Boot project Kubernetes deploy"}
+pipeline {
+    environment {
+        registryUrl = "https://10.31.10.7:5000"
+        registry = "10.31.10.7:5000/"
+        application = "test1234"
+        tag = "latest"
+        registryCredential = "registry-credential"
+        kubernetesCredential = "kubernetes-credential"
+        kubernetesCluster = "https://10.31.10.101:6443"
+        kubernetesClusterName = "di-svc1"
+        kubernetesNameSpace = "default"
+    }
+    agent {
+      kubernetes {
+        defaultContainer 'jnlp'
+        yamlFile 'JenkinsPod.yml'
+      }
+    }
+    stages {
+        stage('spring build') {
+            steps {
+                sh "./mvnw -s /tmp/settings.xml -DskipTests=true clean package"
+            }
+        }
+
+        stage('image build and push') {
+            steps {
+                container('docker') {
+                  script {
+                      docker.withRegistry(registryUrl, registryCredential) {
+                          dockerImage = docker.build registry + application + ":" + tag
+                          dockerImage.push(tag)
+                      }
+                  }
+                }
+            }
+        }
+
+        stage('k8s deploy') {
+            steps {
+              container('kubectl') {
+                withKubeConfig([credentialsId: kubernetesCredential,
+                                serverUrl: kubernetesCluster,
+                                clusterName: kubernetesClusterName,
+                                namespace: kubernetesNameSpace
+                                ]) {
+                    sh "kubectl apply -f deployment.yml"
+                    sh """ kubectl patch deployment ${application} -p '{"spec":{"template":{"metadata":{"annotations":{"build_id":"${env.BUILD_ID}"}}}}}' """
+                }
+              }
+            }
+        }
+
+    }
+    post {
+        success {
+            echo 'success'
+        }
+        failure {
+            echo "Pipeline failed ${env.BUILD_URL} ${env.BUILD_NUMBER} ${env.BUILD_ID}"
+        }
+    }
+}

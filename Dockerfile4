@@ -1,0 +1,8 @@
+FROM 10.31.10.7:5000/openjdk:8-jre-alpine
+ENV JAR_FILE back-test-0.0.1-SNAPSHOT.jar
+ENV GW_HOME /app/msa
+EXPOSE 8080
+COPY target/$JAR_FILE $GW_HOME/
+WORKDIR $GW_HOME
+ENTRYPOINT ["sh", "-c"]
+CMD ["exec java -jar $JAR_FILE"]

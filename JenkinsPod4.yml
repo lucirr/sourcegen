@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 10.31.10.7:5000/jenkins/jnlp-slave:3.29-1-alpine
+    volumeMounts:
+    - name: jenkins-maven-settings
+      mountPath: /tmp
+    - name: jenkins-repository
+      mountPath: /tmp/repository
+  - name: kubectl
+    image: 10.31.10.7:5000/k8s-kubectl
+    command:
+    - cat
+    tty: true
+  - name: docker
+    image: 10.31.10.7:5000/docker
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: sock
+      mountPath: /var/run/docker.sock
+  imagePullSecrets:
+  - name: regcred
+  volumes:
+  - name: sock
+    hostPath:
+      path: /var/run/docker.sock
+  - name: jenkins-maven-settings
+    configMap:
+      defaultMode: 420
+      name: jenkins-maven-settings
+  - name: jenkins-repository
+    emptyDir: {}

@@ -1,0 +1,36 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: test1234
+  labels:
+    application: test1234
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: test1234
+    spec:
+      containers:
+        - name: test1234
+          image: "10.31.10.7:5000/test1234:latest"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      imagePullSecrets:
+        - name: regcred
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test1234
+  labels:
+      application: test1234
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    name: test1234
